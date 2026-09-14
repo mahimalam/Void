@@ -16,6 +16,7 @@ __pycache__/
 .commandcode/
 .agents/
 .gemini/
+.impeccable/
 graphify-out/
 AI_BLUEPRINT.md
 tests/
