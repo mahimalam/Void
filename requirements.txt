@@ -1,0 +1,51 @@
+# J.A.R.V.I.S. Pure Cloud dependencies
+# Linux + Python 3.11
+
+# --- Audio I/O ---
+sounddevice>=0.4.7,<1.0
+numpy>=1.26,<2.0
+
+# --- Wake word ---
+openwakeword>=0.6.0,<1.0
+onnxruntime>=1.18,<2.0
+
+# --- VAD ---
+silero-vad>=5.1
+torch>=2.3,<3.0
+torchaudio>=2.3,<3.0
+
+# --- Cloud API Clients (STT/TTS/Brains) ---
+httpx>=0.27,<1.0
+openai>=1.0.0
+deepgram-sdk>=3.0.0
+pydub>=0.25.1
+
+# --- Utilities ---
+pyyaml>=6.0,<7.0
+structlog>=24.1,<25.0
+argon2-cffi>=23.1,<24.0
+
+# --- Tool system & UI Automation ---
+aiosqlite>=0.20.0
+psutil>=5.9.0
+pyperclip>=1.8.0
+pyautogui>=0.9.54
+
+# --- Memory & Vector DB ---
+lancedb>=0.17.0
+pandas>=2.0.0
+networkx>=3.0
+sentence-transformers>=2.2.0
+
+# --- Testing ---
+pytest>=8.0,<9.0
+pytest-asyncio>=0.23,<1.0
+pytest-mock>=3.12,<4.0
+
+# --- Phase 3: Security & HUD ---
+speechbrain>=1.0.0,<2.0
+websockets>=12.0,<13.0
+
+# --- Phase 4/5: Vision ---
+Pillow>=10.0,<11.0
+opencv-python>=4.8,<5.0

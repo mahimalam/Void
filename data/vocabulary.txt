@@ -1,0 +1,64 @@
+# JARVIS custom STT vocabulary. One entry per line.
+# Format: 'term' or 'misheard -> canonical'.
+# Lines starting with '#' are comments.
+Mahim
+Noman
+JWAV -> Jarvis
+wideo -> video
+pight -> right
+tank -> thanks
+dis -> this
+wery -> very
+guddu -> good
+buk -> book
+Meskineau -> match schedule
+Maheam -> Mahim
+Norman -> Noman
+schedual -> schedule
+shedule -> schedule
+fixchar -> fixture
+fixchure -> fixture
+kickoff -> kickoff
+leeg -> league
+premiar -> premier
+champeens -> champions
+leegue -> league
+serch -> search
+sarch -> search
+plej -> play
+plai -> play
+opan -> open
+opin -> open
+cloze -> close
+cloje -> close
+downlod -> download
+notpad -> notepad
+chrom -> chrome
+youtoob -> YouTube
+yutub -> YouTube
+spotifai -> Spotify
+spotifee -> Spotify
+whatsap -> WhatsApp
+watsap -> WhatsApp
+telegam -> Telegram
+telegrem -> Telegram
+FIFA
+IPL
+T20
+cricket
+Dhaka
+Bangladesh
+Premier League
+Champions League
+La Liga
+Serie A
+Bundesliga
+Cricbuzz
+ESPN
+Jarvis -> Jarvis
+Void -> Void
+Hey Void -> Hey Void
+Woid -> Void
+Boyd -> Void
+Bengali-accented English -> Bengali accent
+

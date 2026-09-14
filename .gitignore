@@ -1,0 +1,68 @@
+# Virtual Environments
+.venv/
+.venv-linux/
+venv/
+env/
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Agent / Tooling / Intermediate Files
+.commandcode/
+.agents/
+.gemini/
+graphify-out/
+AI_BLUEPRINT.md
+tests/
+scripts/
+docs/
+
+# IDE & Operating System
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Secrets, Logs & Private User Data (CRITICAL - NEVER COMMIT)
+data/.env
+data/secrets.yaml
+data/vertex_sa.json
+data/pass_hash.txt
+data/voiceprint.npy
+data/*.db
+data/*.db-journal
+data/*.log
+data/runtime_state.json
+data/latency.log
+data/sessions/
+data/notes/
+data/lancedb/
+data/sandbox/
+data/workstyle.md
+data/elevenlabs_usage.json
+data/.observer_last_run
+data/hud.pid
+data/hud.log
+data/speechbrain_cache/
+*.log
+*.pid
+
+# Large Model Binaries (Exclude all except VOID production model)
+data/piper/*.onnx
+data/piper/*.onnx.json
+data/wakeword/*
+!data/wakeword/void.onnx
+!data/vocabulary.txt
+!data/.env.example
+!data/.gitkeep
+
+# Electron / Node Artifacts
+ui/hud/node_modules/
+ui/hud/dist/

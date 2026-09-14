@@ -1,0 +1,348 @@
+# J.A.R.V.I.S. Configuration
+# Edit values to match your environment. All paths are relative to the project root.
+
+# --- Logging ---
+logging:
+  level: INFO                  # DEBUG | INFO | WARNING | ERROR
+  renderer: pretty             # pretty (rich console) | json
+  log_file: data/jarvis.log
+  log_to_stdout: true
+
+# --- Audio I/O ---
+audio:
+  sample_rate_in: 16000        # Input sample rate (Hz). Must be 16000 for OpenWakeWord + Silero.
+  sample_rate_out: 22050       # Output sample rate (Hz). Must match your Piper voice model.
+  # 2026-06-20: Auto-detection scans for "airpods", "headset",
+  # etc. If None, uses sounddevice default (which can be flaky
+  # on Windows/Linux). Set to explicit index (e.g. 1) if auto-
+  # detection guesses wrong.
+  # 2026-07-10: Pinned to device "alsa_input.pci-0000_05_00.6.analog-stereo" (Ryzen HD Audio Mic).
+  # The 'default' PipeWire virtual device (index 6) was routing incorrectly
+  # and picking up monitor/loopback audio instead of the real mic.
+  # Note: Using the string name instead of the integer index prevents issues across reboots.
+  input_device: "alsa_input.pci-0000_05_00.6.analog-stereo"
+  output_device: "Default Sink"
+  frame_ms: 80                 # Frame duration (ms). 80 ms @ 16 kHz = 1280 samples.
+  channels: 1
+  gain: 1.5                    # Input gain multiplier (1.5x boost ensures speech is clear even from a distance).
+
+# --- Wake word ---
+wake_word:
+  # Custom trained high-precision model for 'Hey Void' and 'Void'
+  model_path: data/wakeword/void.onnx
+  fallback_builtin: null
+  threshold: 0.50              # Standard high-confidence threshold for 'Hey Void' and 'Void'
+  cooldown_ms: 1500            # Ignore additional detections within this window.
+  keyboard_trigger: true       # true = Enter key ALSO wakes VOID (runs in parallel with
+                               # wake word — say 'Hey Void' / 'Void' OR press Enter in the terminal)
+
+# --- Voice Activity Detection ---
+vad:
+  threshold: 0.40              # Optimal threshold avoiding room noise pickup
+  speech_pad_ms: 250           # 250ms padding avoids clipping word edges
+  min_silence_ms: 1100         # 1.1s natural pause window — allows breathing and full sentence completion!
+  min_speech_ms: 320           # Rejects mic pops and transient clicks
+  barge_in_min_ms: 300         # Min continuous speech to interrupt TTS.
+  max_utterance_ms: 20000      # Allows full sentences and commands without cutoff.
+
+# --- Speech-to-Text ---
+# 2026-06-20: STT multilingual upgrade for the user's Bengali
+# accent. primary_language is the language hint passed to
+# Whisper (en = the user commands in English, just accented).
+# When the model's average per-segment logprob drops below
+# min_confidence, JARVIS retries with task="translate" which
+# forces English output regardless of the source language —
+# recovers from heavy-accent audio that Whisper initially
+# misroutes to Bengali script.
+stt:
+  # Model choice: large-v3 is the most accent-robust Whisper model and
+  # fits on 4 GB VRAM when the LLM is not simultaneously loaded (the
+  # pipeline sequences STT → LLM, never both at peak simultaneously).
+  # int8_float16 keeps VRAM under 1.6 GB while preserving most of the
+  # accuracy advantage over medium.en.
+  #
+  # Why NOT medium.en:
+  #   - English-only models cannot run the translate fallback (which
+  #     forces English output when Whisper misroutes Bengali-accented
+  #     audio to Bengali script).
+  #   - medium.en is significantly less robust on heavy accents than
+  #     large-v3 because it was trained on less diverse accent data.
+  #
+  # Why NOT beam_size=1 (greedy):
+  #   - Greedy decoding picks the single highest-probability token at
+  #     each step. On accented speech the first guess is often wrong
+  #     and there is no recovery. beam_size=5 explores 5 hypotheses
+  #     in parallel and picks the best overall sequence — this is the
+  #     single biggest accuracy improvement for accented speakers.
+  #     Cost: ~30-50 ms extra per utterance on GPU. Worth it.
+  #
+  # Why NOT condition_on_previous_text=true:
+  #   - Whisper uses the prior transcript as a "seed" for the next
+  #     segment. On a voice assistant each utterance is independent;
+  #     conditioning on the previous one causes the model to hallucinate
+  #     continuations of the last thing it heard instead of transcribing
+  #     what was actually said. Disabled.
+  model: large-v3
+  device: cuda
+  compute_type: int8_float16   # best accuracy/VRAM tradeoff for large-v3 on 4 GB
+  primary_language: en
+  task: transcribe
+  multilingual_fallback: true  # retry with task="translate" if confidence is low
+  # Raised from -0.6 to -0.8: large-v3 on accented speech typically
+  # scores -0.4 to -0.7 on clean utterances. -0.6 was triggering the
+  # translate fallback on normal speech, adding 300-500 ms of latency
+  # for no benefit. -0.8 only fires on genuinely bad audio.
+  min_confidence: -0.8
+  no_speech_threshold: 0.6
+  # Disabled: each voice command is independent; conditioning on the
+  # prior transcript causes hallucination on a voice assistant workload.
+  condition_on_previous_text: false
+  prompt_reset_on_temperature: 0.5
+  # beam_size=5: the single most impactful accuracy setting for accented
+  # speech. Explores 5 decoding hypotheses and picks the best sequence.
+  # ~30-50 ms extra latency on GPU — a worthwhile trade for correct
+  # transcription of Bengali-accented English.
+  beam_size: 5
+  # Static prompt: tells Whisper the speaker's accent and domain BEFORE
+  # it starts decoding. This biases the first-token predictions toward
+  # English phonemes and the listed proper nouns, dramatically improving
+  # recognition of names and accented words. Keep this concise — Whisper
+  # prompt budget is ~224 tokens and we need room for vocabulary.txt.
+  # Static prompt tells Whisper the accent ONLY — no names, no domain terms.
+  # Names and domain terms cause Groq to hallucinate those exact words when
+  # it receives unclear audio (e.g. "Speaker, Mahim" from the prompt itself).
+  static_prompt: "Bengali-accented English. Voice assistant commands."
+
+# --- Cognitive Triad (The 3-Brain System) ---
+brains:
+  # 2026-06-20: routing_mode default changed from `local_first`
+  # to `cloud_first`. Reason: the local Qwen 3B model (and any
+  # other <7B local model on a 4 GB VRAM card) cannot reliably
+  # decide for itself when to call web_search, capture_screen,
+  # or other tools. It also cannot match Gemini Flash on
+  # reasoning quality, and Gemini's native function-calling
+  # means the model decides autonomously — no keyword lists,
+  # no fragile regex, no brittle "complex" classifier. The
+  # local Qwen is kept as the OFFLINE FALLBACK (it kicks in
+  # when Gemini is unreachable or fails). To run fully
+  # offline, set this to `local_only` (the local brain will
+  # then handle every request, with reduced capability).
+  #
+  # Valid values:
+  #   local_first  - SIMPLE → Qwen local, COMPLEX → Gemini.
+  #                  Cloud failure → Qwen. Local OOM → SmolLM.
+  #   cloud_first  - Every request → Gemini. Cloud failure →
+  #                  Qwen. (New default. Smartest behaviour.)
+  #   local_only   - Never touch the cloud. Always Qwen.
+  #                  Offline-friendly; weaker tool use.
+  #   cloud_only   - Always Gemini. No local fallback. (Use
+  #                  for cost caps or strict cloud-only mode.)
+  # cloud_first: every request goes to Gemini Flash first. With 2 keys
+  # (500 req/day total) there is enough quota for all-day use. Gemini
+  # handles tool calling natively and responds in ~1-2s vs Qwen's 6s+.
+  # Qwen is kept as the offline fallback when Gemini is unavailable.
+  routing_mode: cloud_first
+  cloud_fallback_enabled: true
+  brain1_primary:
+    name: qwen2.5:14b
+    estimated_vram_gb: 2.5
+  brain1_fallback:
+    name: qwen2.5:3b-instruct-q4_K_M
+    estimated_vram_gb: 1.9
+  brain2_specialist:
+    enabled: true             # Set true to activate Free Kilo Gateway cloud brain.
+    base_url: "https://api.kilo.ai/api/gateway/v1"
+    model_flash: "nex-agi/nex-n2.5-mini:free"            # Fast Engine: 1.2s TTFT with accurate tool-calling (no 429 rate limits)
+    model_pro: "nvidia/nemotron-3-super-120b-a12b:free"  # Complex Engine: deep reasoning & architecture
+    model_grok: auto:smart
+    model_embed: cohere.embed-v4.0
+    timeout_seconds: 15
+    use_pro: true             # Dual-engine enabled: routes complex queries to auto:smart
+  brain3_failsafe:
+    name: smollm3:135m-instruct-q4_K_M
+    estimated_vram_gb: 0.5
+
+# --- Ollama (local LLM host) ---
+ollama:
+  host: http://127.0.0.1:11434
+  request_timeout_seconds: 60
+  keep_alive: 30m
+  # 2026-06-20: num_ctx 4096 → 2048. Voice replies rarely need
+  # more than 1k tokens of context, and the LLM is the
+  # slowest stage of the pipeline. Halving num_ctx roughly
+  # halves the prefill cost (work before the first token).
+  num_ctx: 2048
+  temperature: 0.72
+  startup_probe_tokens: 4
+  compaction_brain: flash
+
+# --- Text-to-Speech ---
+tts:
+  binary: data/piper/piper    # Piper executable (Linux — no .exe extension)
+  # 2026-06-20: switched from en_US-libritts_r-medium (American
+  # female) to en_GB-alan-medium (British male) for the
+  # proper JARVIS persona. The British Alan voice is deeper
+  # and more in-character. Available voices in data/piper/:
+  #   en_GB-alan-medium.onnx   - British male (current)
+  #   en_US-libritts_r-medium  - American female
+  #   en_US-lessac-medium      - American female (alt)
+  # To switch voices, update both voice_model and voice_config
+  # to point at the same .onnx + .onnx.json pair.
+  voice_model: data/piper/en_GB-alan-medium.onnx
+  voice_config: data/piper/en_GB-alan-medium.onnx.json
+  worker_count: 1              # Reduced from 2 — two Piper workers caused audio stutter
+                               # when the second worker started before the first drained.
+                               # Single worker serialises synthesis; latency is unchanged
+                               # because Piper is CPU-bound and the bottleneck is the
+                               # PortAudio callback, not the synthesis queue.
+  length_scale: 1.0            # Reduced from 1.05 — 1.05 was slightly slowing speech,
+                               # causing buffer underruns on fast sentences. 1.0 = natural pace.
+  noise_scale: 0.5
+  noise_w: 0.6
+  sample_rate: 22050
+  # Wake-phrase voice switching (Deepgram Aura-2):
+  # "Jarvis"     → aura-2-andromeda-en (professional, authoritative)
+  # "Hey Jarvis" → aura-2-amalthea-en  (warm, expressive)
+  # Switching is automatic — no config needed here.
+
+# --- Streaming (token buffer → sentence boundary → TTS chunk) ---
+streaming:
+  min_chunk_chars: 25          # Reduced from 80 — persistent HTTP keep-alive brings TTS synthesis
+                               # to ~760ms, so 25 chars allows immediate voice start on short phrases.
+  max_chunk_chars: 240
+  sentence_terminators: "[.,!?]+" # Added commas so TTS starts mid-sentence.
+
+# --- Orchestrator (master state machine) ---
+orchestrator:
+  unrecoverable_error_apology: "I ran into a problem and had to reset. Try again."
+  state_idle_timeout_ms: 0
+  # Post-speak settle (H31). Time the orchestrator waits AFTER audio
+  # output is fully drained, to let the speaker hardware buffer and
+  # any room reverb decay before the wake-word detector goes live
+  # again. Default 300 ms is enough for a wired speaker + quiet room;
+  # bump for Bluetooth speakers or noisy rooms. Set to 0 to disable
+  # (only safe if AEC is reliable).
+  # Increased from 300ms to 1200ms. Laptop speakers need more time for
+  # reverb to decay before the follow-up loop opens the mic. 300ms was
+  # causing JARVIS to hear its own voice and respond to itself.
+  post_speak_settle_ms: 1200   # Increased from 800ms — headphone digital pipeline introduces
+                               # latency that 800ms was not fully clearing. 1200ms gives the
+                               # full audio stack time to drain before wake-word goes live.
+  barge_in_min_speech_ms: 1000 # Increased from 640ms — AEC echo residue can mimic 640ms of
+                               # VAD speech on headphones. Requiring a full 1000ms of sustained
+                               # speech eliminates virtually all false self-barge-ins.
+  # Minimum avg_logprob for follow-up transcripts to be passed to the LLM.
+  # Groq returns 0.0 for all transcripts (no real logprob). Our noise-detection
+  # heuristic in stt_groq.py synthesises -1.5 for sparse/noise transcripts and
+  # -2.0 for known hallucinations. Setting this to -1.2 rejects those while
+  # passing all real speech (which gets 0.0 from Groq or > -0.8 from local Whisper).
+  follow_up_min_confidence: -1.2
+  # First-run voiceprint enrollment timeout (H24). On a fresh install
+  # with verification.enabled: true, the user is asked to speak for
+  # 10 seconds. If they don't, the orchestrator used to hang on the
+  # capture window forever. Default 30 s gives a generous window
+  # while still letting a silent user reach the voice loop. On
+  # timeout the partial voiceprint is discarded and the user can
+  # re-enroll later via the "re enroll voiceprint" voice command.
+  enrollment_timeout_s: 30.0
+  # Observer background-task shutdown grace (H23). On shutdown the
+  # orchestrator waits up to this long for the in-flight weekly
+  # observer to write its workstyle.md before giving up. Default
+  # 5 s. Set to 0 to skip the wait (next observer run overwrites
+  # the partial file).
+  observer_shutdown_grace_s: 5.0
+  follow_up:
+    # Continuous multi-turn conversation (stay awake after answering)
+    enabled: true
+    idle_timeout_s: 7.0          # Stays awake for 7s waiting for your follow-up command
+    session_timeout_s: 180.0     # Max multi-turn session duration
+    # Phrases that end the follow-up loop early. Matched
+    # case-insensitively against the transcribed utterance.
+    sleep_phrases:
+      - "sleep"
+      - "sleep void"
+      - "void sleep"
+      - "sleep jarvis"
+      - "jarvis sleep"
+      - "go to sleep"
+      - "stop listening"
+      - "stop"
+      - "standby"
+      - "thanks that's all"
+      - "thank you that's all"
+      - "that'll be all"
+      - "that will be all"
+      - "jarvis stop"
+      - "void stop"
+      - "goodbye"
+      - "bye"
+    headphones_only_warning: true  # Log warning if enabled without headphones
+
+# --- Prompt file paths ---
+prompts:
+  voice_mode: prompts/voice_mode.txt
+  tool_chaining: prompts/tool_chaining.txt
+  complexity_classifier: prompts/complexity_classifier.txt
+  difficulty_classifier: prompts/difficulty_classifier.txt
+
+# --- File paths ---
+paths:
+  data_dir: data
+  runtime_state: data/runtime_state.json
+  audit_log_db: data/jarvis.db
+  workstyle: data/workstyle.md
+
+# --- Verification (Phase 3+) ---
+verification:
+  enabled: false
+  unlock_timeout_minutes: 15
+
+# --- In-Session Conversation History (Phase 1) ---
+# Keeps the last N turns in RAM so Jarvis remembers context within a session.
+# NOT cross-session memory — cleared when Jarvis stops. Phase 4 adds that.
+conversation:
+  enabled: true
+  max_turns: 20              # Keep last 20 turns (10 full exchanges)
+
+# --- Acoustic Echo Cancellation (Phase 1: DirectBufferAEC) ---
+# Uses the TTS output buffer as perfect reference signal to subtract speaker echo.
+# No NLMS filter divergence. No pyaudiowpatch dependency. Stable by design.
+aec:
+  enabled: true
+  filter_length: 32000       # Ring buffer size in samples (2s at 16kHz)
+  delay_ms: 5                # CHANGED from 25ms (laptop speakers) to 5ms (headphones).
+                             # Headphones have near-zero acoustic travel delay — the audio
+                             # is delivered digitally. With 25ms the AEC was subtracting the
+                             # wrong reference frame, leaving echo residue that triggered
+                             # false barge-ins. 5ms accounts for digital pipeline latency only.
+  mic_sample_rate: 16000
+  tts_sample_rate: 22050
+
+# --- Tool System (Phase 2) ---
+# Controls the @tool decorator system for OS interaction.
+tools:
+  enabled: true
+  max_calls_per_turn: 0      # Max consecutive tool calls per voice turn (0 or <= 0 for unlimited)
+  execution_timeout_s: 30    # Hard timeout for each tool execution
+  sandbox_dir: data/sandbox  # Working directory for run_python / run_shell
+  notes_dir: data/notes      # Storage directory for save_note / get_note
+
+# --- Web Search ---
+# Keys resolved from data/.env (see data/.env.example).
+# Each entry is a list because JARVIS rotates through multiple keys
+# to spread the per-key rate limit.
+search:
+  tavily_api_key:
+    - "${TAVILY_API_KEY_1}"
+  serper_api_key:
+    - "${SERPER_API_KEY_1}"
+    - "${SERPER_API_KEY_2}"
+
+# --- Observability & Telemetry ---
+observability:
+  enabled: true
+  host: "127.0.0.1"
+  port: 9090
+
+
+

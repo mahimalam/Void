@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data:; connect-src 'self' ws://127.0.0.1:9001; object-src 'none'; base-uri 'none'">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <title>V.O.I.D. HUD // INTERFACE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cyan-bright: #00F0FF;
+      --cyan-glow: rgba(0, 240, 255, 0.4);
+      --cyan-dim: rgba(0, 240, 255, 0.15);
+      --blue-stark: #0077FF;
+      --green-matrix: #00FF9D;
+      --amber-alert: #FFB700;
+      --crimson-hazard: #FF3366;
+      --magenta-flux: #BD00FF;
+      
+      --bg-chassis: rgba(7, 12, 22, 0.88);
+      --bg-panel: rgba(12, 20, 36, 0.55);
+      --border-panel: rgba(0, 240, 255, 0.22);
+      
+      --font-display: 'Orbitron', -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Share Tech Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      overflow: hidden;
+      font-family: var(--font-mono);
+      color: #E2ECF8;
+    }
+
+    /* Outer Hologram Container with Stark Chamfered Frame */
+    .hud-chassis {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: radial-gradient(circle at 50% 35%, rgba(0, 200, 255, 0.08) 0%, rgba(6, 10, 20, 0.94) 75%);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--border-panel);
+      clip-path: polygon(
+        14px 0, calc(100% - 14px) 0,
+        100% 14px, 100% calc(100% - 14px),
+        calc(100% - 14px) 100%, 14px 100%,
+        0 calc(100% - 14px), 0 14px
+      );
+      box-shadow: 
+        0 0 35px rgba(0, 240, 255, 0.12),
+        inset 0 0 25px rgba(0, 240, 255, 0.05);
+      display: flex;
+      flex-direction: column;
+      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s ease;
+    }
+
+    /* Ambient Ghost Mode (Idle) */
+    .hud-chassis.ghost-mode {
+      opacity: 0.35;
+    }
+    .hud-chassis.ghost-mode:hover {
+      opacity: 0.95;
+    }
+
+    /* Subtle Cybernetic Grid & Scanlines */
+    .hud-chassis::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: 
+        linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+      background-size: 20px 20px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .hud-chassis::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.18) 0px,
+        rgba(0, 0, 0, 0.18) 1px,
+        transparent 1px,
+        transparent 3px
+      );
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* Corner Sci-Fi Brackets */
+    .corner-bracket {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-color: var(--cyan-bright);
+      z-index: 5;
+      opacity: 0.8;
+    }
+    .corner-bracket.tl { top: 3px; left: 3px; border-top: 2px solid; border-left: 2px solid; }
+    .corner-bracket.tr { top: 3px; right: 3px; border-top: 2px solid; border-right: 2px solid; }
+    .corner-bracket.bl { bottom: 3px; left: 3px; border-bottom: 2px solid; border-left: 2px solid; }
+    .corner-bracket.br { bottom: 3px; right: 3px; border-bottom: 2px solid; border-right: 2px solid; }
+
+    /* Top Draggable Header */
+    .hud-header {
+      position: relative;
+      z-index: 10;
+      height: 28px;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(0, 240, 255, 0.15);
+      background: linear-gradient(90deg, rgba(0, 240, 255, 0.08) 0%, transparent 60%);
+      -webkit-app-region: drag;
+    }
+
+    .header-branding {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stark-logo {
+      width: 7px;
+      height: 7px;
+      background: var(--cyan-bright);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--cyan-bright);
+      animation: pulse-dot 2.5s infinite ease-in-out;
+    }
+
+    .header-title {
+      font-family: var(--font-display);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--cyan-bright);
+      text-shadow: 0 0 6px var(--cyan-glow);
+    }
+
+    .header-subtitle {
+      font-size: 9px;
+      color: rgba(226, 236, 248, 0.6);
+      letter-spacing: 1px;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      -webkit-app-region: no-drag;
+    }
+
+    .hud-btn {
+      background: rgba(0, 240, 255, 0.06);
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      color: var(--cyan-bright);
+      font-family: var(--font-mono);
+      font-size: 9px;
+      padding: 2px 7px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .hud-btn:hover {
+      background: rgba(0, 240, 255, 0.25);
+      box-shadow: 0 0 8px var(--cyan-glow);
+      color: #FFF;
+    }
+
+    /* Main 3-Wing Grid */
+    .hud-body {
+      position: relative;
+      z-index: 10;
+      flex: 1;
+      display: grid;
+      grid-template-columns: 145px 1fr 155px;
+      padding: 8px 12px 4px 12px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    /* Left Wing: System Hardware & Security */
+    .telemetry-wing {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .wing-heading {
+      font-family: var(--font-display);
+      font-size: 8.5px;
+      color: rgba(0, 240, 255, 0.7);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      border-bottom: 1px solid rgba(0, 240, 255, 0.15);
+      padding-bottom: 2px;
+      margin-bottom: 2px;
+    }
+
+    .gauge-card {
+      background: var(--bg-panel);
+      border: 1px solid rgba(0, 240, 255, 0.12);
+      padding: 5px 7px;
+      border-radius: 4px;
+    }
+
+    .gauge-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 9.5px;
+      margin-bottom: 3px;
+    }
+
+    .gauge-name {
+      color: rgba(226, 236, 248, 0.65);
+      letter-spacing: 0.5px;
+    }
+
+    .gauge-val {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--cyan-bright);
+      text-shadow: 0 0 4px var(--cyan-glow);
+    }
+
+    .gauge-bar-track {
+      width: 100%;
+      height: 3px;
+      background: rgba(0, 240, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .gauge-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--blue-stark), var(--cyan-bright));
+      box-shadow: 0 0 6px var(--cyan-bright);
+      transition: width 0.4s ease-out;
+    }
+
+    .security-badge {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 9px;
+      padding: 4px 6px;
+      border-radius: 3px;
+      background: rgba(0, 255, 157, 0.08);
+      border: 1px solid rgba(0, 255, 157, 0.3);
+      color: var(--green-matrix);
+      text-shadow: 0 0 4px rgba(0, 255, 157, 0.4);
+    }
+    .security-badge.locked {
+      background: rgba(255, 183, 0, 0.08);
+      border-color: rgba(255, 183, 0, 0.3);
+      color: var(--amber-alert);
+      text-shadow: 0 0 4px rgba(255, 183, 0, 0.4);
+    }
+
+    /* Center Wing: Arc Reactor Core */
+    .core-wing {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .reactor-canvas-wrap {
+      position: relative;
+      width: 130px;
+      height: 130px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #arc-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 130px;
+      height: 130px;
+      cursor: pointer;
+      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.2s ease;
+      filter: drop-shadow(0 0 8px var(--cyan-glow));
+    }
+
+    #arc-canvas:hover {
+      transform: scale(1.05);
+      filter: drop-shadow(0 0 16px var(--cyan-glow));
+    }
+
+    #arc-canvas:active {
+      transform: scale(0.96);
+    }
+
+    .status-readout-wrap {
+      margin-top: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .status-badge {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--cyan-bright);
+      text-shadow: 0 0 10px var(--cyan-glow);
+      transition: all 0.3s;
+    }
+
+    .status-sub {
+      font-size: 8px;
+      letter-spacing: 1.5px;
+      color: rgba(226, 236, 248, 0.5);
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    /* Right Wing: Latency Pipeline & Tool Console */
+    .pipeline-wing {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .latency-card {
+      background: var(--bg-panel);
+      border: 1px solid rgba(0, 240, 255, 0.12);
+      padding: 5px 7px;
+      border-radius: 4px;
+    }
+
+    .lat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 8.5px;
+      margin-bottom: 2px;
+    }
+
+    .lat-metric {
+      color: rgba(226, 236, 248, 0.6);
+    }
+
+    .lat-num {
+      color: #E2ECF8;
+      font-weight: 500;
+    }
+
+    .lat-total-row {
+      margin-top: 4px;
+      padding-top: 3px;
+      border-top: 1px dashed rgba(0, 240, 255, 0.15);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 9.5px;
+      font-weight: 700;
+    }
+
+    .lat-total-val {
+      color: var(--green-matrix);
+      text-shadow: 0 0 5px rgba(0, 255, 157, 0.4);
+    }
+
+    /* Tool Event Stream */
+    .tool-stream {
+      background: var(--bg-panel);
+      border: 1px solid rgba(0, 240, 255, 0.12);
+      padding: 5px 6px;
+      border-radius: 4px;
+      min-height: 52px;
+      max-height: 52px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .tool-entry {
+      font-size: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: rgba(226, 236, 248, 0.85);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    .tool-entry .tag {
+      font-weight: 700;
+      font-size: 7.5px;
+      padding: 1px 3px;
+      border-radius: 2px;
+    }
+    .tool-entry.running .tag { background: rgba(0, 240, 255, 0.2); color: var(--cyan-bright); }
+    .tool-entry.success .tag { background: rgba(0, 255, 157, 0.2); color: var(--green-matrix); }
+    .tool-entry.error .tag { background: rgba(255, 51, 102, 0.2); color: var(--crimson-hazard); }
+
+    /* Bottom Audio Spectrum Bar */
+    .hud-footer {
+      position: relative;
+      z-index: 10;
+      height: 24px;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid rgba(0, 240, 255, 0.12);
+      background: linear-gradient(0deg, rgba(0, 240, 255, 0.04) 0%, transparent 100%);
+    }
+
+    .spectrum-canvas {
+      width: 100%;
+      height: 18px;
+    }
+
+    /* Animations */
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 0.6; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.15); box-shadow: 0 0 12px var(--cyan-bright); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-3px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Dynamic Visual States */
+    .state-listening .status-badge {
+      color: var(--green-matrix);
+      text-shadow: 0 0 12px rgba(0, 255, 157, 0.7);
+    }
+    .state-listening #arc-canvas {
+      filter: drop-shadow(0 0 12px rgba(0, 255, 157, 0.6));
+    }
+
+    .state-thinking .status-badge {
+      color: var(--cyan-bright);
+      text-shadow: 0 0 14px rgba(0, 240, 255, 0.8);
+    }
+
+    .state-speaking .status-badge {
+      color: var(--magenta-flux);
+      text-shadow: 0 0 14px rgba(189, 0, 255, 0.8);
+    }
+    .state-speaking #arc-canvas {
+      filter: drop-shadow(0 0 14px rgba(189, 0, 255, 0.6));
+    }
+
+    .state-error .status-badge {
+      color: var(--crimson-hazard);
+      text-shadow: 0 0 14px rgba(255, 51, 102, 0.8);
+    }
+    .state-error #arc-canvas {
+      filter: drop-shadow(0 0 14px rgba(255, 51, 102, 0.7));
+    }
+
+    .state-wake .status-badge {
+      color: #FFF;
+      text-shadow: 0 0 20px #FFF, 0 0 35px var(--cyan-bright);
+    }
+  </style>
+</head>
+<body>
+  <div class="hud-chassis" id="hud-root">
+    <!-- Sci-Fi Corner Brackets -->
+    <div class="corner-bracket tl"></div>
+    <div class="corner-bracket tr"></div>
+    <div class="corner-bracket bl"></div>
+    <div class="corner-bracket br"></div>
+
+    <!-- Top Draggable Header -->
+    <div class="hud-header">
+      <div class="header-branding">
+        <div class="stark-logo"></div>
+        <span class="header-title">V.O.I.D. // PROTOCOL</span>
+        <span class="header-subtitle">SYS.CORE // VOID ONLINE</span>
+      </div>
+      <div class="header-controls">
+        <button class="hud-btn" id="btn-ghost" title="Toggle Ambient Ghost Mode">GHOST</button>
+        <button class="hud-btn" id="btn-minimize" title="Minimize">_</button>
+        <button class="hud-btn" id="btn-close" title="Hide HUD">×</button>
+      </div>
+    </div>
+
+    <!-- 3-Wing Body -->
+    <div class="hud-body">
+      <!-- Left Wing: Hardware & Security -->
+      <div class="telemetry-wing">
+        <div class="wing-heading">// HARDWARE</div>
+        
+        <div class="gauge-card">
+          <div class="gauge-label-row">
+            <span class="gauge-name">CPU LOAD</span>
+            <span class="gauge-val" id="cpu-val">--%</span>
+          </div>
+          <div class="gauge-bar-track">
+            <div class="gauge-bar-fill" id="cpu-bar" style="width: 25%;"></div>
+          </div>
+        </div>
+
+        <div class="gauge-card">
+          <div class="gauge-label-row">
+            <span class="gauge-name">SYS RAM</span>
+            <span class="gauge-val" id="ram-val">--GB</span>
+          </div>
+          <div class="gauge-bar-track">
+            <div class="gauge-bar-fill" id="ram-bar" style="width: 40%;"></div>
+          </div>
+        </div>
+
+        <div class="security-badge" id="auth-badge">
+          <span>SECURITY</span>
+          <span id="auth-val">OMEGA // UNLOCKED</span>
+        </div>
+      </div>
+
+      <!-- Center Wing: Arc Reactor Core -->
+      <div class="core-wing" id="core-wing">
+        <div class="reactor-canvas-wrap">
+          <canvas id="arc-canvas" width="130" height="130"></canvas>
+        </div>
+        <div class="status-readout-wrap">
+          <div class="status-badge" id="status-badge">SLEEPING</div>
+          <div class="status-sub" id="status-sub">STANDBY MONITOR ACTIVE</div>
+        </div>
+      </div>
+
+      <!-- Right Wing: Latency & Tool Telemetry -->
+      <div class="pipeline-wing">
+        <div class="wing-heading">// LATENCY BUDGET</div>
+        
+        <div class="latency-card">
+          <div class="lat-row"><span class="lat-metric">STT ASR</span><span class="lat-num" id="lat-stt">-- ms</span></div>
+          <div class="lat-row"><span class="lat-metric">AI LLM</span><span class="lat-num" id="lat-ai">-- ms</span></div>
+          <div class="lat-row"><span class="lat-metric">TTS SYNTH</span><span class="lat-num" id="lat-tts">-- ms</span></div>
+          <div class="lat-total-row">
+            <span>TOTAL</span>
+            <span class="lat-total-val" id="lat-total">-- ms</span>
+          </div>
+        </div>
+
+        <div class="tool-stream" id="tool-stream">
+          <div class="tool-entry"><span class="tag">[SYS]</span><span>All neural modules ready</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Audio Spectrum Waveform -->
+    <div class="hud-footer">
+      <canvas class="spectrum-canvas" id="spectrum-canvas" width="500" height="18"></canvas>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
