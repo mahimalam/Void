@@ -1,4 +1,4 @@
-# ⚡ V.O.I.D.
+# ⚡ Void
 
 > *"Sometimes you gotta run before you can walk."* — Tony Stark
 
@@ -19,9 +19,9 @@
 
 </div>
 
-## 🌌 What is V.O.I.D.?
+## 🌌 What is Void?
 
-**V.O.I.D.** (*Very Opinionated Intelligent Device*) is a dream project brought to life: a high-octane, low-latency AI voice assistant that lives on your machine, listens exclusively for your **"Void"** command, controls your desktop, and talks back like a razor-sharp British AI butler.
+**Void** is a dream project brought to life: a high-octane, low-latency AI voice assistant that lives on your machine, listens exclusively for your **"Void"** command, controls your desktop, and talks back like a razor-sharp British AI butler.
 
 No robotic essays. No explaining every single button it clicks. You speak, it executes, and confirms with cold, effortless precision.
 
@@ -30,9 +30,9 @@ No robotic essays. No explaining every single button it clicks. You speak, it ex
 ## ⚡ The Key Superpowers
 
 ### 🧠 1. The "Second Brain" Cognitive Memory System
-Most voice bots have severe gold-fish amnesia: close the app, and they forget who you are. **VOID has a persistent Second Brain:**
+Most voice bots have severe gold-fish amnesia: close the app, and they forget who you are. **Void has a persistent Second Brain:**
 - **Vector Memory (LanceDB)**: Automatically embeds and indexes past conversations, notes, and facts with lightning-fast semantic retrieval.
-- **Knowledge Graph Activation**: Connects related concepts, people, projects, and ideas so VOID understands context intuitively.
+- **Knowledge Graph Activation**: Connects related concepts, people, projects, and ideas so Void understands context intuitively.
 - **Write-Ahead Log (WAL)**: Resilient crash-proof memory that preserves state even through sudden reboots.
 - **Contextual Awareness**: Remembers your work style, projects, preferences, and details across days and weeks.
 
@@ -48,7 +48,7 @@ You don't need a $20/month ChatGPT or Claude subscription to run a world-class v
 - **Phoneme Discrimination**: Triggers vigorously on **"Hey Void"** or just **"Void"** (>99.5% confidence) while rejecting confusers (*"avoid"*, *"voice"*, *"point"*, room chatter) with 0.0000 false triggers.
 
 ### 🗣️ 4. Continuous Multi-Turn Conversations
-- **No Wake-Word Fatigue**: After waking VOID and receiving an answer, the follow-up window stays open for 7 seconds.
+- **No Wake-Word Fatigue**: After waking Void and receiving an answer, the follow-up window stays open for 7 seconds.
 - **Natural Flow**: Keep conversing naturally without repeating the wake word on every turn.
 - **Effortless Standby**: Stays quiet when you're done, or goes to sleep immediately when you say *"That's all"*, *"Go to sleep"*, or *"Sleep"*.
 
@@ -121,10 +121,10 @@ Say: **"Hey Void"** or press **Enter** in the terminal.
 
 ## 🎩 Voice Persona & Etiquette
 
-VOID is calibrated like Tony Stark's personal butler:
+Void is calibrated like Tony Stark's personal butler:
 - **Direct & Punchy**: One short sentence for most confirmations (*"Opened YouTube, sir."*, *"Volume at 50%."*).
 - **Silent Execution**: Never narrates internal thoughts or announces what tool it's calling.
-- **Standby Commands**: Say *"sleep"*, *"standby"*, or *"that's all"* to put VOID to rest.
+- **Standby Commands**: Say *"sleep"*, *"standby"*, or *"that's all"* to put Void to rest.
 
 ---
 
