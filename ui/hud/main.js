@@ -1,4 +1,4 @@
-const { app, BrowserWindow, screen, Tray, Menu, nativeImage, ipcMain, shell, session } = require('electron');
+const { app, BrowserWindow, screen, Tray, Menu, nativeImage, ipcMain, shell, session, globalShortcut } = require('electron');
 const path = require('path');
 
 let mainWindow;
@@ -41,9 +41,9 @@ function isSafeExternalUrl(rawUrl) {
 function createWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
 
-  // Upgraded dimensions for holographic Arc Reactor HUD
-  const hudWidth = 540;
-  const hudHeight = 270;
+  // Upgraded dimensions for ergonomic typography and high-tech hologram
+  const hudWidth = 580;
+  const hudHeight = 285;
 
   mainWindow = new BrowserWindow({
     width: hudWidth,
@@ -68,6 +68,18 @@ function createWindow() {
     }
   });
 
+  // Keep window elevated without stealing focus
+  try {
+    mainWindow.setAlwaysOnTop(true, 'screen-saver');
+  } catch (_) {
+    mainWindow.setAlwaysOnTop(true);
+  }
+
+  // Start in click-through mode while dormant
+  try {
+    mainWindow.setIgnoreMouseEvents(true, { forward: true });
+  } catch (_) {}
+
   // Apply strict CSP via response headers — defence in depth alongside the
   // <meta http-equiv="Content-Security-Policy"> in index.html.
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
@@ -88,13 +100,14 @@ function createWindow() {
   });
 
   mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
+    // Non-focus-stealing show
+    mainWindow.showInactive();
   });
 
-  // Fallback show after 300ms in case Wayland compositor delays ready-to-show
+  // Fallback show after 300ms in case compositor delays ready-to-show
   setTimeout(() => {
     if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
-      mainWindow.show();
+      mainWindow.showInactive();
     }
   }, 300);
 
@@ -123,6 +136,29 @@ ipcMain.on('hud:minimize', () => {
 
 ipcMain.on('hud:hide', () => {
   if (mainWindow) mainWindow.hide();
+});
+
+// Click-through management: allow clicking through window when dormant
+ipcMain.on('hud:set-click-through', (_event, enable) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    try {
+      mainWindow.setIgnoreMouseEvents(Boolean(enable), { forward: true });
+    } catch (_) {}
+  }
+});
+
+// Non-focus-stealing window display
+ipcMain.on('hud:show-inactive', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    if (!mainWindow.isVisible()) {
+      mainWindow.showInactive();
+    }
+    try {
+      mainWindow.setAlwaysOnTop(true, 'screen-saver');
+    } catch (_) {
+      mainWindow.setAlwaysOnTop(true);
+    }
+  }
 });
 
 // IPC: renderer asks main to open a URL. Validated here, not in the renderer.
@@ -198,13 +234,16 @@ ipcMain.handle('hud:shutdown-backend', async (_event, timeoutMs = 8000) => {
 function createTray() {
   const icon = nativeImage.createFromDataURL(iconBase64);
   tray = new Tray(icon);
-  tray.setToolTip('J.A.R.V.I.S.');
+  tray.setToolTip('Void // Voice Assistant');
 
   const contextMenu = Menu.buildFromTemplate([
-    { label: 'J.A.R.V.I.S. Background Service', enabled: false },
+    { label: 'Void Background Service', enabled: false },
     { type: 'separator' },
     { label: 'Show HUD', click: () => {
-        if (mainWindow) mainWindow.show();
+        if (mainWindow) {
+          mainWindow.showInactive();
+          mainWindow.webContents.send('hud:wake-event');
+        }
     }},
     { label: 'Hide HUD', click: () => {
         if (mainWindow) mainWindow.hide();
@@ -282,7 +321,22 @@ app.whenReady().then(() => {
   } catch (e) {
     console.error('Failed to write hud.pid:', e);
   }
+  // Global shortcut to summon Void HUD without voice (Ctrl+Shift+V / Cmd+Shift+V)
+  try {
+    globalShortcut.register('CommandOrControl+Shift+V', () => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.showInactive();
+        mainWindow.webContents.send('hud:wake-event');
+      }
+    });
+  } catch (e) {
+    console.warn('[HUD-Main] Global shortcut register failed:', e);
+  }
+
   app.on('will-quit', () => {
+    try {
+      globalShortcut.unregisterAll();
+    } catch (_) {}
     try {
       const current = fs.readFileSync(pidFile, 'utf8').trim();
       if (current === String(process.pid)) {

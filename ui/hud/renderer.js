@@ -19,6 +19,7 @@ const latAi = document.getElementById('lat-ai');
 const latTts = document.getElementById('lat-tts');
 const latTotal = document.getElementById('lat-total');
 
+const btnPin = document.getElementById('btn-pin');
 const btnGhost = document.getElementById('btn-ghost');
 const btnMinimize = document.getElementById('btn-minimize');
 const btnClose = document.getElementById('btn-close');
@@ -47,6 +48,94 @@ btnClose.addEventListener('click', () => {
   if (api && api.hide) api.hide();
 });
 
+// -------------------------------------------------------------
+// Pin Mode & Non-Intrusive Materialization State Engine
+// -------------------------------------------------------------
+let isPinned = localStorage.getItem('void_hud_pinned') === 'true';
+let dematerializeTimer = null;
+
+function updatePinUI() {
+  if (!btnPin) return;
+  if (isPinned) {
+    btnPin.innerText = 'PIN: ON';
+    btnPin.classList.add('active');
+    btnPin.setAttribute('title', 'HUD is Pinned (Always Visible). Click to enable Auto-Hide.');
+  } else {
+    btnPin.innerText = 'PIN: AUTO';
+    btnPin.classList.remove('active');
+    btnPin.setAttribute('title', 'HUD Auto-Hides on Standby. Click to Pin permanently.');
+  }
+}
+
+function materializeHUD(pulse = true) {
+  if (dematerializeTimer) {
+    clearTimeout(dematerializeTimer);
+    dematerializeTimer = null;
+  }
+  hudRoot.classList.remove('dormant');
+  hudRoot.classList.add('materialized');
+  if (pulse) {
+    hudRoot.classList.add('wake-active');
+    setTimeout(() => hudRoot.classList.remove('wake-active'), 1400);
+  }
+  if (api && api.setClickThrough) {
+    api.setClickThrough(false);
+  }
+  if (api && api.showInactive) {
+    api.showInactive();
+  }
+}
+
+function dematerializeHUD() {
+  if (isPinned) return;
+  hudRoot.classList.remove('materialized', 'wake-active');
+  hudRoot.classList.add('dormant');
+  if (api && api.setClickThrough) {
+    api.setClickThrough(true);
+  }
+}
+
+function scheduleDematerialize(delayMs = 2400) {
+  if (isPinned) return;
+  if (dematerializeTimer) clearTimeout(dematerializeTimer);
+  dematerializeTimer = setTimeout(() => {
+    dematerializeTimer = null;
+    if (currentState === 'idle') {
+      dematerializeHUD();
+    }
+  }, delayMs);
+}
+
+if (btnPin) {
+  updatePinUI();
+  btnPin.addEventListener('click', () => {
+    isPinned = !isPinned;
+    localStorage.setItem('void_hud_pinned', isPinned ? 'true' : 'false');
+    updatePinUI();
+    if (isPinned) {
+      materializeHUD(false);
+    } else if (currentState === 'idle') {
+      dematerializeHUD();
+    }
+  });
+}
+
+// Initial state on startup
+if (isPinned) {
+  materializeHUD(false);
+} else {
+  dematerializeHUD();
+}
+
+// Listen for global summon shortcut from main process
+if (api && api.onWake) {
+  api.onWake(() => {
+    materializeHUD(true);
+    triggerWakeSequence();
+    addToolLog('Summon triggered', 'running');
+  });
+}
+
 // Safe external links
 document.addEventListener('click', (e) => {
   const link = e.target.closest('a[href]');
@@ -63,7 +152,7 @@ let currentState = 'idle'; // idle | wake | listening | thinking | speaking | er
 let stateStartTime = Date.now();
 
 const STATE_CONFIG = {
-  idle: { badge: 'SLEEPING', sub: 'STANDBY MONITOR ACTIVE', color: '#00F0FF', spinSpeed: 0.008, pulseSpeed: 0.003 },
+  idle: { badge: 'SLEEPING', sub: 'SAY "VOID" • READY', color: '#00F0FF', spinSpeed: 0.008, pulseSpeed: 0.003 },
   wake: { badge: 'WAKE', sub: 'CORE ONLINE // SENSORS ENGAGED', color: '#FFFFFF', spinSpeed: 0.06, pulseSpeed: 0.02 },
   listening: { badge: 'LISTENING', sub: 'ACOUSTIC RECEPTORS ACTIVE', color: '#00FF9D', spinSpeed: 0.022, pulseSpeed: 0.015 },
   transcribing: { badge: 'TRANSCRIBING', sub: 'NEURAL STREAM PARSING', color: '#00F0FF', spinSpeed: 0.04, pulseSpeed: 0.015 },
@@ -81,9 +170,13 @@ function setState(stateName) {
   statusBadge.innerText = cfg.badge;
   statusSub.innerText = cfg.sub;
 
-  // Clear previous state classes and assign current
+  const isDormant = hudRoot.classList.contains('dormant');
+  const isMaterialized = hudRoot.classList.contains('materialized');
+  const isWakeActive = hudRoot.classList.contains('wake-active');
+
+  // Clear previous state classes and assign current while preserving overlay state
   coreWing.className = `core-wing state-${stateName}`;
-  hudRoot.className = `hud-chassis state-${stateName}${isGhostMode ? ' ghost-mode' : ''}`;
+  hudRoot.className = `hud-chassis state-${stateName}${isGhostMode ? ' ghost-mode' : ''}${isMaterialized ? ' materialized' : ''}${isDormant ? ' dormant' : ''}${isWakeActive ? ' wake-active' : ''}`;
 }
 
 function addToolLog(text, tagType = 'running') {
@@ -453,12 +546,15 @@ function connect() {
             pendingStateAfterWake = null;
           }
           setState('idle');
+          scheduleDematerialize(2400);
           break;
         case 'wake':
+          materializeHUD(true);
           triggerWakeSequence();
           addToolLog('Wake word detected', 'running');
           break;
         case 'listening':
+          materializeHUD(false);
           if (wakeLockTimer) {
             pendingStateAfterWake = 'listening';
           } else {
@@ -466,6 +562,7 @@ function connect() {
           }
           break;
         case 'transcribing':
+          materializeHUD(false);
           if (wakeLockTimer) {
             clearTimeout(wakeLockTimer);
             wakeLockTimer = null;
@@ -474,6 +571,7 @@ function connect() {
           setState('transcribing');
           break;
         case 'thinking':
+          materializeHUD(false);
           if (wakeLockTimer) {
             clearTimeout(wakeLockTimer);
             wakeLockTimer = null;
@@ -482,6 +580,7 @@ function connect() {
           setState('thinking');
           break;
         case 'speaking':
+          materializeHUD(false);
           if (wakeLockTimer) {
             clearTimeout(wakeLockTimer);
             wakeLockTimer = null;
@@ -490,6 +589,7 @@ function connect() {
           setState('speaking');
           break;
         case 'error':
+          materializeHUD(false);
           if (wakeLockTimer) {
             clearTimeout(wakeLockTimer);
             wakeLockTimer = null;
@@ -502,13 +602,13 @@ function connect() {
         case 'system_stats':
           if (payload.cpu !== undefined) {
             cpuVal.innerText = payload.cpu + '%';
-            cpuBar.style.width = Math.min(100, Math.max(5, payload.cpu)) + '%';
+            const cpuRatio = Math.min(1, Math.max(0.05, payload.cpu / 100));
+            cpuBar.style.transform = `scaleX(${cpuRatio})`;
           }
           if (payload.ram !== undefined) {
             ramVal.innerText = payload.ram + 'GB';
-            // Scale based on typical 16GB / 32GB
-            const ramPct = Math.min(100, Math.round((parseFloat(payload.ram) / 32) * 100));
-            ramBar.style.width = Math.max(10, ramPct) + '%';
+            const ramRatio = Math.min(1, Math.max(0.1, parseFloat(payload.ram) / 32));
+            ramBar.style.transform = `scaleX(${ramRatio})`;
           }
           break;
 

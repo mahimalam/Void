@@ -43,5 +43,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   hide() {
     ipcRenderer.send('hud:hide');
+  },
+
+  setClickThrough(enable) {
+    ipcRenderer.send('hud:set-click-through', Boolean(enable));
+  },
+
+  showInactive() {
+    ipcRenderer.send('hud:show-inactive');
+  },
+
+  onWake(callback) {
+    if (typeof callback !== 'function') return () => {};
+    const listener = () => callback();
+    ipcRenderer.on('hud:wake-event', listener);
+    return () => ipcRenderer.removeListener('hud:wake-event', listener);
   }
 });

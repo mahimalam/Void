@@ -11,17 +11,17 @@
   <style>
     :root {
       --cyan-bright: #00F0FF;
-      --cyan-glow: rgba(0, 240, 255, 0.4);
-      --cyan-dim: rgba(0, 240, 255, 0.15);
+      --cyan-glow: rgba(0, 240, 255, 0.3);
+      --cyan-dim: rgba(0, 240, 255, 0.12);
       --blue-stark: #0077FF;
       --green-matrix: #00FF9D;
       --amber-alert: #FFB700;
       --crimson-hazard: #FF3366;
       --magenta-flux: #BD00FF;
       
-      --bg-chassis: rgba(7, 12, 22, 0.88);
-      --bg-panel: rgba(12, 20, 36, 0.55);
-      --border-panel: rgba(0, 240, 255, 0.22);
+      --bg-chassis: rgba(7, 12, 22, 0.92);
+      --bg-panel: rgba(12, 20, 36, 0.65);
+      --border-panel: rgba(0, 240, 255, 0.24);
       
       --font-display: 'Orbitron', -apple-system, sans-serif;
       --font-mono: 'JetBrains Mono', 'Share Tech Mono', monospace;
@@ -40,6 +40,7 @@
       background: transparent;
       overflow: hidden;
       font-family: var(--font-mono);
+      font-size: 13px;
       color: #E2ECF8;
     }
 
@@ -48,7 +49,7 @@
       position: relative;
       width: 100vw;
       height: 100vh;
-      background: radial-gradient(circle at 50% 35%, rgba(0, 200, 255, 0.08) 0%, rgba(6, 10, 20, 0.94) 75%);
+      background: radial-gradient(circle at 50% 35%, rgba(0, 200, 255, 0.08) 0%, rgba(6, 10, 20, 0.95) 75%);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
       border: 1px solid var(--border-panel);
@@ -59,29 +60,51 @@
         0 calc(100% - 14px), 0 14px
       );
       box-shadow: 
-        0 0 35px rgba(0, 240, 255, 0.12),
-        inset 0 0 25px rgba(0, 240, 255, 0.05);
+        0 16px 36px rgba(0, 0, 0, 0.6),
+        0 2px 8px rgba(0, 240, 255, 0.08);
       display: flex;
       flex-direction: column;
-      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s ease;
+      
+      /* Dormant by default: invisible and click-through until awakened */
+      opacity: 0;
+      transform: translateY(16px) scale(0.96);
+      pointer-events: none;
+      transition: opacity 0.38s cubic-bezier(0.16, 1, 0.3, 1), transform 0.38s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    /* Ambient Ghost Mode (Idle) */
+    /* Materialized active state when awake */
+    .hud-chassis.materialized {
+      opacity: 1;
+      transform: translateY(0) scale(1.0);
+      pointer-events: auto;
+    }
+
+    /* Ambient Ghost Mode (Semi-transparent background when idle) */
     .hud-chassis.ghost-mode {
-      opacity: 0.35;
+      opacity: 0.28;
     }
     .hud-chassis.ghost-mode:hover {
       opacity: 0.95;
     }
 
-    /* Subtle Cybernetic Grid & Scanlines */
+    /* Holographic wake pulse animation */
+    @keyframes wake-pulse {
+      0% { box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6), 0 4px 14px rgba(0, 240, 255, 0.15); }
+      50% { box-shadow: 0 18px 42px rgba(0, 0, 0, 0.75), 0 6px 20px rgba(0, 240, 255, 0.3); }
+      100% { box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6), 0 4px 14px rgba(0, 240, 255, 0.15); }
+    }
+    .hud-chassis.wake-active {
+      animation: wake-pulse 1.2s ease-out;
+    }
+
+    /* Subtle Cybernetic Grid & Soft Scanlines */
     .hud-chassis::before {
       content: "";
       position: absolute;
       inset: 0;
       background: 
-        linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+        linear-gradient(rgba(0, 240, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 240, 255, 0.025) 1px, transparent 1px);
       background-size: 20px 20px;
       pointer-events: none;
       z-index: 1;
@@ -93,8 +116,8 @@
       inset: 0;
       background: repeating-linear-gradient(
         0deg,
-        rgba(0, 0, 0, 0.18) 0px,
-        rgba(0, 0, 0, 0.18) 1px,
+        rgba(0, 0, 0, 0.06) 0px,
+        rgba(0, 0, 0, 0.06) 1px,
         transparent 1px,
         transparent 3px
       );
@@ -105,59 +128,57 @@
     /* Corner Sci-Fi Brackets */
     .corner-bracket {
       position: absolute;
-      width: 10px;
-      height: 10px;
+      width: 12px;
+      height: 12px;
       border-color: var(--cyan-bright);
       z-index: 5;
-      opacity: 0.8;
+      opacity: 0.85;
     }
     .corner-bracket.tl { top: 3px; left: 3px; border-top: 2px solid; border-left: 2px solid; }
     .corner-bracket.tr { top: 3px; right: 3px; border-top: 2px solid; border-right: 2px solid; }
     .corner-bracket.bl { bottom: 3px; left: 3px; border-bottom: 2px solid; border-left: 2px solid; }
     .corner-bracket.br { bottom: 3px; right: 3px; border-bottom: 2px solid; border-right: 2px solid; }
 
-    /* Top Draggable Header */
+    /* Top Draggable Header with ample padding */
     .hud-header {
       position: relative;
       z-index: 10;
-      height: 28px;
-      padding: 0 12px;
+      min-height: 36px;
+      padding: 7px 14px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid rgba(0, 240, 255, 0.15);
-      background: linear-gradient(90deg, rgba(0, 240, 255, 0.08) 0%, transparent 60%);
+      border-bottom: 1px solid rgba(0, 240, 255, 0.16);
+      background: linear-gradient(90deg, rgba(0, 240, 255, 0.09) 0%, transparent 60%);
       -webkit-app-region: drag;
     }
 
     .header-branding {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
 
     .stark-logo {
-      width: 7px;
-      height: 7px;
+      width: 8px;
+      height: 8px;
       background: var(--cyan-bright);
       border-radius: 50%;
-      box-shadow: 0 0 8px var(--cyan-bright);
-      animation: pulse-dot 2.5s infinite ease-in-out;
     }
 
     .header-title {
       font-family: var(--font-display);
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 700;
       letter-spacing: 2px;
       color: var(--cyan-bright);
-      text-shadow: 0 0 6px var(--cyan-glow);
     }
 
     .header-subtitle {
-      font-size: 9px;
-      color: rgba(226, 236, 248, 0.6);
-      letter-spacing: 1px;
+      font-size: 11px;
+      color: rgba(226, 236, 248, 0.65);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
     }
 
     .header-controls {
@@ -168,31 +189,36 @@
     }
 
     .hud-btn {
-      background: rgba(0, 240, 255, 0.06);
-      border: 1px solid rgba(0, 240, 255, 0.2);
+      background: rgba(0, 240, 255, 0.08);
+      border: 1px solid rgba(0, 240, 255, 0.25);
       color: var(--cyan-bright);
       font-family: var(--font-mono);
-      font-size: 9px;
-      padding: 2px 7px;
+      font-size: 11px;
+      padding: 3px 8px;
       border-radius: 3px;
       cursor: pointer;
       transition: all 0.2s;
     }
     .hud-btn:hover {
       background: rgba(0, 240, 255, 0.25);
-      box-shadow: 0 0 8px var(--cyan-glow);
       color: #FFF;
+      border-color: var(--cyan-bright);
+    }
+    .hud-btn.active {
+      background: rgba(0, 240, 255, 0.35);
+      color: #FFF;
+      border-color: var(--cyan-bright);
     }
 
-    /* Main 3-Wing Grid */
+    /* Main 3-Wing Grid with Balanced Spacing */
     .hud-body {
       position: relative;
       z-index: 10;
       flex: 1;
       display: grid;
-      grid-template-columns: 145px 1fr 155px;
-      padding: 8px 12px 4px 12px;
-      gap: 10px;
+      grid-template-columns: 165px 1fr 170px;
+      padding: 10px 14px 6px 14px;
+      gap: 12px;
       align-items: center;
     }
 
@@ -200,24 +226,24 @@
     .telemetry-wing {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
     }
 
     .wing-heading {
       font-family: var(--font-display);
-      font-size: 8.5px;
-      color: rgba(0, 240, 255, 0.7);
+      font-size: 11px;
+      color: rgba(0, 240, 255, 0.75);
       letter-spacing: 1.5px;
       text-transform: uppercase;
       border-bottom: 1px solid rgba(0, 240, 255, 0.15);
-      padding-bottom: 2px;
-      margin-bottom: 2px;
+      padding-bottom: 3px;
+      margin-bottom: 1px;
     }
 
     .gauge-card {
       background: var(--bg-panel);
-      border: 1px solid rgba(0, 240, 255, 0.12);
-      padding: 5px 7px;
+      border: 1px solid rgba(0, 240, 255, 0.15);
+      padding: 6px 9px;
       border-radius: 4px;
     }
 
@@ -225,55 +251,56 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 9.5px;
-      margin-bottom: 3px;
+      font-size: 11.5px;
+      margin-bottom: 4px;
     }
 
     .gauge-name {
-      color: rgba(226, 236, 248, 0.65);
+      color: rgba(226, 236, 248, 0.7);
       letter-spacing: 0.5px;
+      font-size: 11px;
     }
 
     .gauge-val {
       font-family: var(--font-mono);
+      font-size: 13px;
       font-weight: 700;
       color: var(--cyan-bright);
-      text-shadow: 0 0 4px var(--cyan-glow);
     }
 
     .gauge-bar-track {
       width: 100%;
-      height: 3px;
-      background: rgba(0, 240, 255, 0.1);
+      height: 4px;
+      background: rgba(0, 240, 255, 0.12);
       border-radius: 2px;
       overflow: hidden;
     }
 
     .gauge-bar-fill {
       height: 100%;
-      width: 0%;
+      width: 100%;
+      transform: scaleX(0);
+      transform-origin: left;
       background: linear-gradient(90deg, var(--blue-stark), var(--cyan-bright));
-      box-shadow: 0 0 6px var(--cyan-bright);
-      transition: width 0.4s ease-out;
+      border-radius: 2px;
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .security-badge {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      font-size: 9px;
-      padding: 4px 6px;
+      font-size: 11px;
+      padding: 5px 8px;
       border-radius: 3px;
       background: rgba(0, 255, 157, 0.08);
       border: 1px solid rgba(0, 255, 157, 0.3);
       color: var(--green-matrix);
-      text-shadow: 0 0 4px rgba(0, 255, 157, 0.4);
     }
     .security-badge.locked {
       background: rgba(255, 183, 0, 0.08);
       border-color: rgba(255, 183, 0, 0.3);
       color: var(--amber-alert);
-      text-shadow: 0 0 4px rgba(255, 183, 0, 0.4);
     }
 
     /* Center Wing: Arc Reactor Core */
@@ -301,13 +328,11 @@
       width: 130px;
       height: 130px;
       cursor: pointer;
-      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.2s ease;
-      filter: drop-shadow(0 0 8px var(--cyan-glow));
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     #arc-canvas:hover {
       transform: scale(1.05);
-      filter: drop-shadow(0 0 16px var(--cyan-glow));
     }
 
     #arc-canvas:active {
@@ -315,7 +340,7 @@
     }
 
     .status-readout-wrap {
-      margin-top: 4px;
+      margin-top: 6px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -324,34 +349,33 @@
 
     .status-badge {
       font-family: var(--font-display);
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 900;
       letter-spacing: 3px;
       text-transform: uppercase;
       color: var(--cyan-bright);
-      text-shadow: 0 0 10px var(--cyan-glow);
-      transition: all 0.3s;
+      transition: color 0.3s;
     }
 
     .status-sub {
-      font-size: 8px;
+      font-size: 11px;
       letter-spacing: 1.5px;
-      color: rgba(226, 236, 248, 0.5);
+      color: rgba(226, 236, 248, 0.65);
       text-transform: uppercase;
-      margin-top: 2px;
+      margin-top: 3px;
     }
 
     /* Right Wing: Latency Pipeline & Tool Console */
     .pipeline-wing {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
     }
 
     .latency-card {
       background: var(--bg-panel);
-      border: 1px solid rgba(0, 240, 255, 0.12);
-      padding: 5px 7px;
+      border: 1px solid rgba(0, 240, 255, 0.15);
+      padding: 6px 9px;
       border-radius: 4px;
     }
 
@@ -359,65 +383,67 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 8.5px;
-      margin-bottom: 2px;
+      font-size: 11px;
+      margin-bottom: 3px;
     }
 
     .lat-metric {
-      color: rgba(226, 236, 248, 0.6);
+      color: rgba(226, 236, 248, 0.7);
     }
 
     .lat-num {
       color: #E2ECF8;
-      font-weight: 500;
+      font-weight: 600;
+      font-size: 11.5px;
     }
 
     .lat-total-row {
       margin-top: 4px;
-      padding-top: 3px;
-      border-top: 1px dashed rgba(0, 240, 255, 0.15);
+      padding-top: 4px;
+      border-top: 1px solid rgba(0, 240, 255, 0.18);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 9.5px;
+      font-size: 12px;
       font-weight: 700;
     }
 
     .lat-total-val {
       color: var(--green-matrix);
-      text-shadow: 0 0 5px rgba(0, 255, 157, 0.4);
+      font-size: 12.5px;
     }
 
     /* Tool Event Stream */
     .tool-stream {
       background: var(--bg-panel);
-      border: 1px solid rgba(0, 240, 255, 0.12);
-      padding: 5px 6px;
+      border: 1px solid rgba(0, 240, 255, 0.15);
+      padding: 6px 8px;
       border-radius: 4px;
-      min-height: 52px;
-      max-height: 52px;
+      min-height: 56px;
+      max-height: 56px;
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      gap: 3px;
+      gap: 4px;
     }
 
     .tool-entry {
-      font-size: 8px;
+      font-size: 12px;
+      letter-spacing: normal;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      color: rgba(226, 236, 248, 0.85);
+      color: rgba(226, 236, 248, 0.9);
       display: flex;
       align-items: center;
-      gap: 4px;
-      animation: fadeIn 0.25s ease-out;
+      gap: 6px;
+      animation: fadeIn 0.2s ease-out;
     }
 
     .tool-entry .tag {
       font-weight: 700;
-      font-size: 7.5px;
-      padding: 1px 3px;
+      font-size: 11px;
+      padding: 1px 5px;
       border-radius: 2px;
     }
     .tool-entry.running .tag { background: rgba(0, 240, 255, 0.2); color: var(--cyan-bright); }
@@ -428,26 +454,21 @@
     .hud-footer {
       position: relative;
       z-index: 10;
-      height: 24px;
-      padding: 0 12px;
+      height: 26px;
+      padding: 0 14px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-top: 1px solid rgba(0, 240, 255, 0.12);
+      border-top: 1px solid rgba(0, 240, 255, 0.15);
       background: linear-gradient(0deg, rgba(0, 240, 255, 0.04) 0%, transparent 100%);
     }
 
     .spectrum-canvas {
       width: 100%;
-      height: 18px;
+      height: 20px;
     }
 
     /* Animations */
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 0.6; transform: scale(0.9); }
-      50% { opacity: 1; transform: scale(1.15); box-shadow: 0 0 12px var(--cyan-bright); }
-    }
-
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(-3px); }
       to { opacity: 1; transform: translateY(0); }
@@ -456,36 +477,18 @@
     /* Dynamic Visual States */
     .state-listening .status-badge {
       color: var(--green-matrix);
-      text-shadow: 0 0 12px rgba(0, 255, 157, 0.7);
     }
-    .state-listening #arc-canvas {
-      filter: drop-shadow(0 0 12px rgba(0, 255, 157, 0.6));
-    }
-
     .state-thinking .status-badge {
       color: var(--cyan-bright);
-      text-shadow: 0 0 14px rgba(0, 240, 255, 0.8);
     }
-
     .state-speaking .status-badge {
       color: var(--magenta-flux);
-      text-shadow: 0 0 14px rgba(189, 0, 255, 0.8);
     }
-    .state-speaking #arc-canvas {
-      filter: drop-shadow(0 0 14px rgba(189, 0, 255, 0.6));
-    }
-
     .state-error .status-badge {
       color: var(--crimson-hazard);
-      text-shadow: 0 0 14px rgba(255, 51, 102, 0.8);
     }
-    .state-error #arc-canvas {
-      filter: drop-shadow(0 0 14px rgba(255, 51, 102, 0.7));
-    }
-
     .state-wake .status-badge {
       color: #FFF;
-      text-shadow: 0 0 20px #FFF, 0 0 35px var(--cyan-bright);
     }
   </style>
 </head>
@@ -505,6 +508,7 @@
         <span class="header-subtitle">SYS.CORE // VOID ONLINE</span>
       </div>
       <div class="header-controls">
+        <button class="hud-btn" id="btn-pin" title="Toggle Auto-Hide vs Always Visible">PIN: AUTO</button>
         <button class="hud-btn" id="btn-ghost" title="Toggle Ambient Ghost Mode">GHOST</button>
         <button class="hud-btn" id="btn-minimize" title="Minimize">_</button>
         <button class="hud-btn" id="btn-close" title="Hide HUD">×</button>
@@ -550,7 +554,7 @@
         </div>
         <div class="status-readout-wrap">
           <div class="status-badge" id="status-badge">SLEEPING</div>
-          <div class="status-sub" id="status-sub">STANDBY MONITOR ACTIVE</div>
+          <div class="status-sub" id="status-sub">SAY "VOID" • READY</div>
         </div>
       </div>
 
@@ -576,7 +580,7 @@
 
     <!-- Bottom Audio Spectrum Waveform -->
     <div class="hud-footer">
-      <canvas class="spectrum-canvas" id="spectrum-canvas" width="500" height="18"></canvas>
+      <canvas class="spectrum-canvas" id="spectrum-canvas" width="540" height="20"></canvas>
     </div>
   </div>
 
