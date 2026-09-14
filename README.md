@@ -1,4 +1,4 @@
-# ⚡ V.O.I.D. (J.A.R.V.I.S.)
+# ⚡ V.O.I.D.
 
 > *"Sometimes you gotta run before you can walk."* — Tony Stark
 
@@ -21,7 +21,7 @@
 
 ## 🌌 What is V.O.I.D.?
 
-**V.O.I.D.** (*Very Opinionated Intelligent Device*, also answering to **J.A.R.V.I.S.**) is a dream project brought to life: a high-octane, low-latency voice assistant that lives on your machine, listens for your command, controls your desktop, and talks back like a razor-sharp British AI butler.
+**V.O.I.D.** (*Very Opinionated Intelligent Device*) is a dream project brought to life: a high-octane, low-latency AI voice assistant that lives on your machine, listens exclusively for your **"Void"** command, controls your desktop, and talks back like a razor-sharp British AI butler.
 
 No robotic essays. No explaining every single button it clicks. You speak, it executes, and confirms with cold, effortless precision.
 
