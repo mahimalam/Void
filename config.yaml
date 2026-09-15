@@ -44,6 +44,7 @@ vad:
   min_speech_ms: 320           # Rejects mic pops and transient clicks
   barge_in_min_ms: 300         # Min continuous speech to interrupt TTS.
   max_utterance_ms: 20000      # Allows full sentences and commands without cutoff.
+  initial_silence_timeout_s: 5.5 # Natural breathing window after wake chime to speak command
 
 # --- Speech-to-Text ---
 # 2026-06-20: STT multilingual upgrade for the user's Bengali

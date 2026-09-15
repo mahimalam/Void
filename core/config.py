@@ -185,6 +185,7 @@ class VADConfig:
     min_speech_ms: int = 240
     barge_in_min_ms: int = 300
     max_utterance_ms: int = 30000
+    initial_silence_timeout_s: float = 5.5
 
 
 @dataclass(frozen=True)

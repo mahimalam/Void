@@ -76,7 +76,7 @@ function materializeHUD(pulse = true) {
   hudRoot.classList.add('materialized');
   if (pulse) {
     hudRoot.classList.add('wake-active');
-    setTimeout(() => hudRoot.classList.remove('wake-active'), 1400);
+    setTimeout(() => hudRoot.classList.remove('wake-active'), 700);
   }
   if (api && api.setClickThrough) {
     api.setClickThrough(false);
@@ -225,7 +225,7 @@ function triggerWakeSequence() {
       setState(pendingStateAfterWake);
       pendingStateAfterWake = null;
     }
-  }, 1400);
+  }, 250);
 }
 
 if (arcCanvas) {

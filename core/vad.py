@@ -135,7 +135,7 @@ class VADProcessor:
         get_frame: Callable[[], Coroutine[Any, Any, AudioFrame | None]],
         max_duration_s: float = 30.0,
         max_consecutive_none: int = 20,
-        initial_silence_timeout_s: float = 3.5,
+        initial_silence_timeout_s: float | None = None,
     ) -> np.ndarray | None:
         """Collect audio frames from an async source until silence is detected.
 
@@ -151,6 +151,8 @@ class VADProcessor:
         padding still gives the STT model a clean end-of-utterance.
         """
         self.reset()
+        if initial_silence_timeout_s is None:
+            initial_silence_timeout_s = getattr(self._cfg, "initial_silence_timeout_s", 5.5)
         self._utterance_start = time.monotonic()
         padding_frames = max(1, int(self._cfg.speech_pad_ms / self._frame_ms))
         consecutive_none = 0
